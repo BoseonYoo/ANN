@@ -1,6 +1,74 @@
 import numpy as np
 from collections import OrderedDict
+   
+################################# PERCEPTRON ################################
+    	
+def OR(x1, x2):
+    w1, w2, b, theta = 0.5, 0.5, -0.2, 0
+    tmp = x1 * w1 + x2 * w2 + b
+    if tmp <= 0:
+        return 0
+    else:
+        return 1
 
+def AND(x1, x2):
+    w1, w2, b, theta = 0.5, 0.5, 0, 0.7
+    tmp = x1 * w1 + x2 * w2 + b
+    if tmp <= theta:
+        return 0
+    elif tmp > theta:
+    	  return 1
+    	  
+def NAND(x1, x2):
+    w1, w2, b, theta = -0.5, -0.5, 0.7, 0
+    tmp = x1 * w1 + x2 * w2 + b
+    if tmp <= theta:
+        return 0
+    elif tmp > theta:
+    	  return 1
+
+def XOR(x1, x2):
+    s1 = NAND(x1, x2)
+    s2 = OR(x1, x2)
+    y = AND(s1, s2)
+    return y
+
+############################## DATA GENERATION ##############################
+
+def genRandomData(cardinality, dimension, coef):
+    data = dict()
+    x = coef * np.random.randn(cardinality, dimension)
+    t = np.zeros(cardinality, np.int32)
+    t[np.sum(x, axis=1) > 0]=1 
+    data['x'] = x
+    data['t'] = t
+    return data
+
+"""
+usage: 
+data = genRandomData(10000, 2, 0.1)
+x = data['x']
+t = data['t']
+
+weight = genRandomData(2, 2, 0.1)
+w = weight['x']
+b = weight['t']
+
+y = np.dot(x, w.T) + b
+
+r = ReLU()
+a = r.forward(y)
+
+plt.subplot(131)
+plt.scatter(x[:,0], x[:,1], c=t)
+plt.subplot(132)
+plt.scatter(y[:,0], y[:,1], c=t)
+plt.subplot(133)
+plt.scatter(a[:,0], a[:,1], c=t)
+plt.show()
+"""
+ 
+############################### NEURAL NETWORK ##############################
 
 def softmax(x):
     temp = x.T
@@ -38,6 +106,7 @@ class AffineLayer:
         self.w = self.w - self.lr * self.dw
         self.b = self.b - self.lr * self.db
         return dx
+
 
 class ReLU:
     def __init__(self):
