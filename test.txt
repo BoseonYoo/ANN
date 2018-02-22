@@ -1,0 +1,222 @@
+# 1.
+import os, sys
+sys.path.append(os.pardir)
+
+import numpy as np
+import matplotlib.pylab as plt
+
+from dataset.mnist import load_mnist
+from Simple_NeuralNetwork import *
+
+
+
+
+
+# 2. Perceptron
+def AND(x1, x2):
+    w1, w2, b, theta = 0.5, 0.5, 0, 0.7
+    tmp = x1 * w1 + x2 * w2 + b
+    if tmp <= theta:
+        return 0
+    elif tmp > theta:
+    	  return 1
+    	  
+def NAND(x1, x2):
+    w1, w2, b, theta = -0.5, -0.5, 0.7, 0
+    tmp = x1 * w1 + x2 * w2 + b
+    if tmp <= theta:
+        return 0
+    elif tmp > theta:
+    	  return 1
+
+def XOR(x1, x2):
+    s1 = NAND(x1, x2)
+    s2 = OR_pctr(x1, x2)
+    y  = AND(s1, s2)
+    return y
+  
+  
+  
+    
+    
+# 3. Multi-dimensional matrix multiplication, error... why??
+temp = genRandomData(5, 2, 0.1)
+a = temp['x']
+temp = genRandomData(3, 2, 0.1)
+b = temp['x']
+c = np.dot(a,b)  ====>  c = np.dot(a,b.T)
+print(c)
+
+
+
+
+
+
+# 4.1 Neuralnet: data generation, plot
+data = genRandomData(10000, 2, 0.1)
+x = data['x']
+t = data['t']
+plt.scatter(x[:,0], x[:,1], c=t)
+plt.show()
+
+# 4.2 Neuralnet: weight generation and affine operation(= x * W + b), plot
+weight = genRandomData(2, 2, 0.1)
+w = weight['x']
+b = weight['t']
+y = np.dot(x, w) + b
+plt.scatter(y[:,0], y[:,1], c=t)
+plt.show()
+
+# 4.3 Neuralnet: Activation function to complete hidden layer, plot
+r = ReLU()
+a = r.forward(y)
+plt.scatter(a[:,0], a[:,1], c=t)
+plt.show()
+
+# 4.4 Neuralnet: Challenge --> one more hidden layer. 
+weight generation and affine operation(= a * W2 + b2)
+Activation function to complete hidden layer
+
+weight2 = genRandomData(2, 2, 0.1)
+w2 = weight2['x']
+b2 = weight2['t']
+y2 = np.dot(a, w2) + b2
+
+r2 = ReLU()
+a2 = r2.forward(y2)
+plt.scatter(a2[:,0], a2[:,1], c=t)
+plt.show()
+
+# 4.5 Neuralnet: Challenge --> put output layer.
+weight generation and affine operation(= a * W2 + b2)
+
+weight3 = genRandomData(2, 2, 0.1)
+w3 = weight3['x']
+b3 = weight3['t']
+y3 = np.dot(a2, w3) + b3
+plt.scatter(y3[:,0], y3[:,1], c=t)
+plt.show()
+
+# 4.6 Neuralnet: Softmax
+rst = softmax(y3)
+print(rst)
+
+# 4.7 Neuralnet: cross_entropy_error
+loss = cross_entropy_error(rst, t)
+print(loss)
+
+# 4.8 Feed_forward with MNIST dataset, data visualization
+(x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, one_hot_label=True)
+print(x_train.shape)
+print(x_train)
+print(t_train.shape)
+print(t_train)
+
+# 4.9 
+train_size, num_input = x_train.shape
+hidden_nodes = 50
+gen_coef = 0.01
+lr = 0.1
+batch_size = 100
+num_class = 10
+
+neuralNet = NeuralNet(num_input, hidden_nodes, num_class, gen_coef, lr)
+
+# 4.10 mini batch
+batch_mask = np.random.choice(train_size, batch_size)
+x_batch = x_train[batch_mask]
+t_batch = t_train[batch_mask]
+print(batch_mask)
+print(x_batch)
+
+# 4.11 feed forward with neuralNet
+neuralNet.loss(x_batch, t_batch)
+print(loss)
+
+
+
+
+
+
+# 5.1 Backpropagation: print y - t
+rst = neuralNet.last_layer.backward()
+print(rst.shape)
+print(rst)
+
+
+
+
+
+
+# 6 Create a TwoLayerNet by adding 1 more hidden layer to NeuralNet class
+
+class TwoLayerNet:
+    def __init__(self, num_input, hidden_nodes_1, hidden_nodes_2, num_class, gen_coef, lr):
+        self.layers = OrderedDict()
+        self.layers['hidden_layer_1'] = AffineLayer(num_input, hidden_nodes_1, gen_coef, lr)
+        self.layers['r1'] = ReLU()
+        self.layers['hidden_layer_2'] = AffineLayer(hidden_nodes_1, hidden_nodes_2, gen_coef, lr)
+        self.layers['r2'] = ReLU()
+        self.layers['output_layer'] = AffineLayer(hidden_nodes_2, num_class, gen_coef, lr)
+        self.last_layer = Softmax()
+    
+    def predict(self, x):
+        for layer in self.layers.values():
+            x = layer.forward(x)
+            
+        return x
+    
+    def loss(self, x, t):
+        y = self.predict(x)
+        
+        return self.last_layer.forward(y, t)
+    
+    def learn(self, x, t):
+        error = self.loss(x, t)
+        
+        layers = list(self.layers.values())
+        layers.reverse()
+        
+        dout = self.last_layer.backward()
+        
+        for layer in layers:
+            dout = layer.backward(dout)
+            
+        return error
+    
+    def accuracy(self, x, t):
+        y = self.predict(x)
+        y = np.argmax(y, axis=1)
+        if t.ndim != 1 : t = np.argmax(t, axis=1)
+        
+        accuracy = np.sum(y == t) / float(x.shape[0])
+        return accuracy
+        
+        
+hidden_nodes_1 = 50 
+hidden_nodes_2 = 50
+
+neuralNet = TwoLayerNet(num_input, hidden_nodes_1, hidden_nodes_2, num_class, gen_coef, lr)
+
+train_acc_list = []
+test_acc_list = []
+
+for i in range(10000):
+    batch_mask = np.random.choice(train_size, batch_size)
+    x_batch = x_train[batch_mask]
+    t_batch = t_train[batch_mask]
+    
+    error = neuralNet.learn(x_batch, t_batch)
+    
+    if i % 100 == 0:
+        train_acc = neuralNet.accuracy(x_train, t_train)
+        test_acc = neuralNet.accuracy(x_test, t_test)
+        train_acc_list.append(train_acc)
+        test_acc_list.append(test_acc)
+        print(train_acc, test_acc)
+
+plt.subplot(121)
+plt.plot(train_acc_list)
+plt.subplot(122)
+plt.plot(test_acc_list)
+plt.show()
